@@ -1,4 +1,3 @@
-@'
 import { GenerationError, generateInterviewResult } from "../server/generate.js";
 
 export default async function handler(
@@ -37,4 +36,3 @@ export default async function handler(
     });
   }
 }
-'@ | Set-Content api\generate.ts
