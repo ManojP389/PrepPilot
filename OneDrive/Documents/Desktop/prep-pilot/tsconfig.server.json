@@ -11,5 +11,5 @@
     "noUnusedParameters": true,
     "erasableSyntaxOnly": true
   },
-  "include": ["server", "src/lib", "src/types"]
+  "include": ["api", "server", "src/lib", "src/types"]
 }

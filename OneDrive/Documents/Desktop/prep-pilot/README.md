@@ -1,84 +1,100 @@
 # PrepPilot
 
-PrepPilot turns a job description or interview goal into a structured preparation workspace with skills, practice questions, answer reveals, filters, and progress tracking.
+PrepPilot turns a job description or interview goal into a structured interview preparation dashboard with skills, practice questions, answer reveals, filters, and progress tracking.
 
-## Key Features
+## Features
 
-- AI-generated interview preparation from free-form input
-- Validated focus skills and interview questions
-- Difficulty and category filtering
-- Revealable model answers
-- “I know this” and “Need practice” status tracking
+- Gemini-generated interview preparation from free-form input
+- Strict runtime validation of AI responses
+- Difficulty and category filters
+- Revealable answers
+- “I know this” and “Need practice” tracking
 - Weak-area practice mode and progress tracking
-- Responsive dark dashboard for desktop, tablet, and mobile
+- Previous/next question navigation
+- Responsive dark dashboard
 
 ## Tech Stack
 
-- React 19 and TypeScript
-- Vite
-- Node.js and Express
-- Groq Chat Completions API
+- React 19, TypeScript, and Vite
+- Vercel serverless Node.js functions
+- Google Gemini API
 - CSS with no external UI library
 
 ## Architecture
 
 ```text
-React prompt form
-    -> POST /api/generate through the Vite proxy
-Express server
-    -> Groq API
+React frontend
+    -> POST /api/generate
+Vercel serverless function
+    -> Gemini API using server-only GEMINI_API_KEY
     -> JSON parsing and validateInterviewResult()
-    -> validated InterviewResult response
+    -> { success: true, data }
 React dashboard
 ```
 
-The browser never receives the Groq API key. The backend owns provider access and returns only validated interview data or a safe error response.
+The frontend uses the relative `/api/generate` URL. Vercel serves the frontend and API from the same deployment, so no production CORS or separate backend service is required. The local Express server remains available through `npm run server` for local development.
 
 ## AI Integration
 
-The server sends the user’s input to Groq using its OpenAI-compatible chat completions endpoint and requests JSON output. The response is parsed as `unknown` and passed through the strict runtime validator before it can reach React. Results must contain 6–8 skills, at least 10 questions, unique question IDs, multiple categories, and Easy, Medium, and Hard difficulty coverage.
+`api/generate.ts` accepts a POST request containing `{ input: string }` and calls Gemini on the server. The API key is read only from `process.env.GEMINI_API_KEY`; it is never imported into `src/` or exposed through a `VITE_` variable. Gemini output is parsed as unknown and must pass `validateInterviewResult()` before the response is sent to the browser.
 
 ## Project Structure
 
 ```text
-src/
-  components/       Dashboard, filters, question, skill, and progress UI
-  lib/              API client and runtime validation
-  types/            InterviewResult schema
-  App.tsx           Prompt flow and request state
+api/
+  generate.ts       Vercel POST /api/generate function
+  health.ts         Vercel GET /api/health function
 server/
-  index.ts          Express routes and CORS
-  generate.ts       Groq request, parsing, and server-side validation
+  index.ts          Local Express server
+  generate.ts       Shared Gemini generation and validation
+src/
+  components/       Dashboard, filters, question, skill, progress UI
+  lib/              Frontend API client and validation
+  types/            InterviewResult schema
+vercel.json         Node.js 24 function configuration
 ```
 
 ## Environment Setup
 
-Copy `.env.example` to `.env` and add a Groq API key locally:
+Create a local `.env` file from `.env.example`:
 
 ```env
-GROQ_API_KEY=your_groq_api_key_here
+GEMINI_API_KEY=your_gemini_api_key_here
 ```
 
-Never commit `.env` or place the key in `src/`.
+Never commit `.env` or put the key in `src/`.
 
-## Run the Frontend
+## Local Development
+
+Install dependencies:
 
 ```powershell
 npm install
+```
+
+Run the frontend:
+
+```powershell
 npm run dev
 ```
 
-Open `http://localhost:5173`.
-
-## Run the Backend
-
-In a second terminal:
+Run the local Express API in a second terminal:
 
 ```powershell
 npm run server
 ```
 
-The API runs at `http://localhost:3001`.
+The frontend runs at `http://localhost:5173`, and the local API runs at `http://localhost:3001`. Vite proxies `/api` to the local Express server.
+
+## Deploy To Vercel
+
+1. Push the repository to GitHub.
+2. Import the repository into Vercel.
+3. Keep the framework preset as Vite. Vercel detects the frontend build automatically.
+4. Add the production environment variable `GEMINI_API_KEY` in Vercel Project Settings.
+5. Deploy the project.
+
+Vercel automatically maps `api/generate.ts` to `POST /api/generate` and `api/health.ts` to `GET /api/health`. The serverless functions use Node.js 24 through `vercel.json` and the package engine setting.
 
 ## Example Input
 
