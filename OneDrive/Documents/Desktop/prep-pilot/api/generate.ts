@@ -1,9 +1,14 @@
-import type { VercelRequest, VercelResponse } from "@vercel/node";
+@'
 import { GenerationError, generateInterviewResult } from "../server/generate.js";
 
 export default async function handler(
-  request: VercelRequest,
-  response: VercelResponse,
+  request: Request & { body?: { input?: unknown } },
+  response: {
+    setHeader: (name: string, value: string) => void;
+    status: (code: number) => {
+      json: (data: unknown) => unknown;
+    };
+  },
 ) {
   if (request.method !== "POST") {
     response.setHeader("Allow", "POST");
@@ -32,3 +37,4 @@ export default async function handler(
     });
   }
 }
+'@ | Set-Content api\generate.ts
